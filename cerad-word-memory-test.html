@@ -290,7 +290,6 @@
         // ElevenLabs TTS 함수
         async function elevenLabsTTS(text, callback) {
             if (!elevenLabsConnected || !elevenLabsApiKey || !elevenLabsVoiceId) {
-                // ElevenLabs를 사용할 수 없으면 기본 TTS 사용
                 defaultTTS(text, callback);
                 return;
             }
@@ -378,11 +377,9 @@
         
         // 음성 출력 함수
         function speak(text, callback) {
-            // ElevenLabs를 우선적으로 사용
             if (elevenLabsConnected && elevenLabsApiKey && elevenLabsVoiceId) {
                 elevenLabsTTS(text, callback);
             } else {
-                // ElevenLabs가 연결되지 않은 경우 기본 TTS 사용
                 defaultTTS(text, callback);
             }
         }
@@ -390,7 +387,6 @@
         // ElevenLabs 초기화
         async function initializeElevenLabs() {
             try {
-                // 음성 목록 가져오기
                 const response = await fetch('https://api.elevenlabs.io/v1/voices', {
                     headers: {
                         'xi-api-key': elevenLabsApiKey
@@ -401,29 +397,26 @@
                     const data = await response.json();
                     elevenLabsConnected = true;
                     
-                    // 한국어 음성 찾기 (Matilda 우선)
+                    // Matilda 음성 찾기
                     const matilda = data.voices.find(v => v.name === 'Matilda');
                     if (matilda) {
                         elevenLabsVoiceId = matilda.voice_id;
-                        console.log('ElevenLabs Matilda 음성 선택됨');
-                    } else {
-                        // Matilda가 없으면 첫 번째 음성 사용
-                        if (data.voices.length > 0) {
-                            elevenLabsVoiceId = data.voices[0].voice_id;
-                            console.log('ElevenLabs 기본 음성 선택됨');
-                        }
+                        console.log('Matilda 음성 자동 선택:', elevenLabsVoiceId);
+                    } else if (data.voices.length > 0) {
+                        elevenLabsVoiceId = data.voices[0].voice_id;
+                        console.log('기본 음성 선택:', elevenLabsVoiceId);
                     }
                     
                     console.log('ElevenLabs 연결 성공!');
+                    return true;
                 } else {
                     throw new Error('API 연결 실패');
                 }
             } catch (error) {
                 elevenLabsConnected = false;
-                elevenLabsApiKey = null;
-                elevenLabsVoiceId = null;
                 console.error('ElevenLabs API 오류:', error);
                 console.log('기본 브라우저 TTS를 사용합니다.');
+                return false;
             }
         }
 
