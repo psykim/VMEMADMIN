@@ -134,6 +134,65 @@
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
         }
+        
+        /* 동그란 시작 버튼 */
+        .start-button-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 48px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .start-button-circle:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+        }
+        
+        .start-button-circle:active {
+            transform: scale(0.98);
+        }
+        
+        /* 버튼 내부 반짝임 효과 */
+        .start-button-circle::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg) translateY(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .start-button-circle:hover::before {
+            transform: rotate(45deg) translateY(-50%);
+        }
+        
+        .button-text {
+            position: relative;
+            z-index: 1;
+        }
 
         .recording-indicator {
             display: flex;
@@ -264,7 +323,6 @@
         /* 카드 덱 컨테이너 */
         .card-deck-container {
             position: relative;
-            margin-bottom: 60px;
             perspective: 1000px;
         }
         
@@ -378,15 +436,9 @@
         <div class="phase-indicator hidden" id="phaseIndicator"></div>
         
         <div class="test-area" id="testArea">
-            <div class="card-deck-container">
-                <div class="card-deck">
-                    <div class="card-deck-shadow"></div>
-                    <div class="card-deck-main">
-                        <div class="card-pattern"></div>
-                    </div>
-                </div>
-            </div>
-            <button class="start-button" onclick="startTest()">검사 시작</button>
+            <button class="start-button-circle" onclick="startTest()">
+                <span class="button-text">시작</span>
+            </button>
         </div>
     </div>
 
@@ -652,22 +704,33 @@
             testResults = [];
             
             const testArea = document.getElementById('testArea');
-            testArea.innerHTML = '<h1 class="show">CERAD 단어목록기억검사</h1><div class="instruction">잠시만 기다려주세요...</div>';
+            testArea.innerHTML = `
+                <div class="card-deck-container fade-transition">
+                    <div class="card-deck">
+                        <div class="card-deck-shadow"></div>
+                        <div class="card-deck-main">
+                            <div class="card-pattern"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
             // 시작 안내
-            speak("제가 지금부터 10개의 단어를 보여드리겠습니다. 제가 그 단어를 하나씩 보여드리면 큰소리로 읽어보세요. 다 읽고 나신 다음, 보여드린 10개의 단어를 모두 외워서 대답해 보시도록 할 예정이니 잘 기억하시구요.", 
-                function() {
-                    // 추가 안내
-                    setTimeout(() => {
-                        speak("자, 준비되셨나요? 그럼 시작하겠습니다.", 
-                            function() {
-                                // 1초 대기 후 시작
-                                setTimeout(startTrial, 1000);
-                            }
-                        );
-                    }, 500);
-                }
-            );
+            setTimeout(() => {
+                speak("제가 지금부터 10개의 단어를 보여드리겠습니다. 제가 그 단어를 하나씩 보여드리면 큰소리로 읽어보세요. 다 읽고 나신 다음, 보여드린 10개의 단어를 모두 외워서 대답해 보시도록 할 예정이니 잘 기억하시구요.", 
+                    function() {
+                        // 추가 안내
+                        setTimeout(() => {
+                            speak("자, 준비되셨나요? 그럼 시작하겠습니다.", 
+                                function() {
+                                    // 1초 대기 후 시작
+                                    setTimeout(startTrial, 1000);
+                                }
+                            );
+                        }, 500);
+                    }
+                );
+            }, 1000); // 카드 덱이 나타난 후 1초 대기
         }
 
         // 시행 시작
