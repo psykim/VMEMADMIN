@@ -804,10 +804,22 @@
 
             recognition.onerror = function(event) {
                 console.error('음성 인식 오류:', event.error);
+                
+                // network 오류는 무시 (너무 많이 발생)
+                if (event.error === 'network') {
+                    return;
+                }
+                
                 if (event.error === 'no-speech') {
-                    // 음성이 감지되지 않은 경우 재시작
+                    // 음성이 감지되지 않은 경우만 재시작
                     if (isRecognizing) {
-                        recognition.start();
+                        setTimeout(() => {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('음성인식 재시작 실패:', e);
+                            }
+                        }, 1000);
                     }
                 }
             };
@@ -1009,6 +1021,11 @@
                                 <div class="recording-indicator active" id="recordingIndicator">
                                     <div class="recording-dot"></div>
                                     <div class="recording-text">마이크 녹음 중...</div>
+                                </div>
+                                <!-- 수동 입력을 위한 버튼 (디버깅용) -->
+                                <div class="manual-input-section" style="margin-top: 20px;">
+                                    <input type="text" id="manualWordInput" placeholder="단어 입력" style="padding: 10px; font-size: 18px; border-radius: 5px; border: 1px solid #ccc;">
+                                    <button onclick="addManualWord()" style="padding: 10px 20px; font-size: 18px; margin-left: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">추가</button>
                                 </div>
                             `;
                             
@@ -1406,6 +1423,28 @@
         // 페이지 로드시 ElevenLabs 초기화
         window.addEventListener('DOMContentLoaded', () => {
             initializeElevenLabs();
+        });
+        
+        // 수동 단어 입력 함수
+        function addManualWord() {
+            const input = document.getElementById('manualWordInput');
+            const word = input.value.trim();
+            
+            if (word && isRecognizing) {
+                processRecognizedWord(word);
+                input.value = '';
+                input.focus();
+            }
+        }
+        
+        // 엔터키로도 입력 가능
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('manualWordInput');
+                if (input && document.activeElement === input) {
+                    addManualWord();
+                }
+            }
         });
     </script>
 </body>
