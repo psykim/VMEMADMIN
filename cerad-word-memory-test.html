@@ -252,6 +252,27 @@
         .recording-indicator.active .recording-text {
             color: rgba(255, 255, 255, 0.9);
         }
+        
+        .recall-progress {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .progress-text {
+            background: rgba(76, 175, 80, 0.15);
+            color: #4CAF50;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 24px;
+            font-weight: 500;
+            display: inline-block;
+            border: 2px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        #correctCount {
+            font-weight: 700;
+            font-size: 28px;
+        }
 
         .admin-panel {
             position: fixed;
@@ -829,6 +850,35 @@
                     encouragementGiven = false; // 새 응답이 있으면 격려 리셋
                     
                     console.log(`단어 인식: ${order}. ${word} (${wordData.isCorrect ? '정답' : '침투'})`);
+                    
+                    // 정답 개수 업데이트
+                    const correctCount = currentTrialResult.recalledWords.filter(w => w.isCorrect).length;
+                    const correctCountElement = document.getElementById('correctCount');
+                    if (correctCountElement) {
+                        correctCountElement.textContent = correctCount;
+                    }
+                    
+                    // 정답 10개를 모두 말했는지 확인
+                    if (correctCount >= 10) {
+                        console.log('정답 10개 달성! 회상 종료');
+                        
+                        // 타이머 표시 업데이트
+                        const timerElement = document.getElementById('recallTimer');
+                        if (timerElement) {
+                            timerElement.textContent = '완료!';
+                            timerElement.style.color = '#4CAF50';
+                        }
+                        
+                        // 완료 음성 안내
+                        speak("잘하셨습니다. 모든 단어를 기억하셨네요.");
+                        
+                        // 2초 후 자동 종료 (음성 안내 후 여유 시간)
+                        setTimeout(() => {
+                            if (isRecognizing) {
+                                endRecall();
+                            }
+                        }, 2000);
+                    }
                 }
             }
         }
@@ -953,6 +1003,9 @@
                                     기억나는 단어를 모두 말씀해주세요
                                 </div>
                                 <div class="timer" id="recallTimer">90</div>
+                                <div class="recall-progress" id="recallProgress">
+                                    <span class="progress-text">정답: <span id="correctCount">0</span>/10</span>
+                                </div>
                                 <div class="recording-indicator active" id="recordingIndicator">
                                     <div class="recording-dot"></div>
                                     <div class="recording-text">마이크 녹음 중...</div>
