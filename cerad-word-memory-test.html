@@ -630,8 +630,15 @@
                         setTimeout(() => {
                             speak("자, 준비되셨나요? 그럼 시작하겠습니다.", 
                                 function() {
-                                    // 1초 대기 후 시작
-                                    setTimeout(startTrial, 1000);
+                                    // 추가 안내
+                                    setTimeout(() => {
+                                        speak("삐소리가 난 후 카드 아래 마이크에 불이 들어오면 소리내어 카드에 적힌 단어를 읽어주세요.", 
+                                            function() {
+                                                // 1초 대기 후 시작
+                                                setTimeout(startTrial, 1000);
+                                            }
+                                        );
+                                    }, 500);
                                 }
                             );
                         }, 500);
@@ -782,13 +789,25 @@
             if (currentTrial === 1) {
                 speak("수고하셨습니다. 다시 한번 보여드리겠습니다. 큰 소리로 읽어 보세요", 
                     function() {
-                        setTimeout(startTrial, 1000);
+                        setTimeout(() => {
+                            speak("삐소리가 난 후 카드 아래 마이크에 불이 들어오면 소리내어 카드에 적힌 단어를 읽어주세요.", 
+                                function() {
+                                    setTimeout(startTrial, 1000);
+                                }
+                            );
+                        }, 500);
                     }
                 );
             } else if (currentTrial === 2) {
                 speak("수고하셨습니다. 이제 마지막으로 한번 더 보여드리겠습니다. 큰 소리로 읽어 보세요", 
                     function() {
-                        setTimeout(startTrial, 1000);
+                        setTimeout(() => {
+                            speak("삐소리가 난 후 카드 아래 마이크에 불이 들어오면 소리내어 카드에 적힌 단어를 읽어주세요.", 
+                                function() {
+                                    setTimeout(startTrial, 1000);
+                                }
+                            );
+                        }, 500);
                     }
                 );
             } else {
