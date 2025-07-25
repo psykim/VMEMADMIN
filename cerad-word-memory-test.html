@@ -1060,8 +1060,11 @@
                 recordingIndicator.classList.remove('active');
             }
             
+            // 현재 시행 결과 저장
+            console.log(`시행 ${currentTrial + 1} 결과:`, currentTrialResult);
             testResults.push(currentTrialResult);
             currentTrial++;
+            console.log('전체 테스트 결과:', testResults);
             
             const testArea = document.getElementById('testArea');
             testArea.innerHTML = '<div class="instruction">잠시만 기다려주세요...</div>';
@@ -1117,6 +1120,18 @@
         // 결과 표시
         function showResults() {
             const testArea = document.getElementById('testArea');
+            
+            // testResults가 비어있는지 확인
+            if (!testResults || testResults.length === 0) {
+                console.error('테스트 결과가 없습니다');
+                testArea.innerHTML = `
+                    <div class="instruction">
+                        검사가 완료되었습니다.<br>
+                        결과 데이터가 없습니다.
+                    </div>
+                `;
+                return;
+            }
             
             let resultsHTML = `
                 <div class="results-container">
@@ -1317,7 +1332,63 @@
             if (e.ctrlKey && e.shiftKey && e.key === 'A') {
                 toggleAdminPanel();
             }
+            // 테스트용 단축키 (Ctrl+Shift+T) - 더미 데이터로 결과 표시
+            if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+                testResultsDisplay();
+            }
         });
+        
+        // 테스트용 함수 - 더미 데이터로 결과 표시
+        function testResultsDisplay() {
+            testResults = [
+                {
+                    trial: 1,
+                    notReadWords: [],
+                    recalledWords: [
+                        { word: '우유', order: 1, isCorrect: true },
+                        { word: '팥', order: 2, isCorrect: true },
+                        { word: '사과', order: 3, isCorrect: false },
+                        { word: '바다', order: 4, isCorrect: true },
+                        { word: '편지', order: 5, isCorrect: true },
+                        { word: '왕', order: 6, isCorrect: true }
+                    ],
+                    intrusionWords: ['사과']
+                },
+                {
+                    trial: 2,
+                    notReadWords: [],
+                    recalledWords: [
+                        { word: '붓', order: 1, isCorrect: true },
+                        { word: '가구', order: 2, isCorrect: true },
+                        { word: '우유', order: 3, isCorrect: true },
+                        { word: '바다', order: 4, isCorrect: true },
+                        { word: '기계', order: 5, isCorrect: true },
+                        { word: '팥', order: 6, isCorrect: true },
+                        { word: '왕', order: 7, isCorrect: true }
+                    ],
+                    intrusionWords: []
+                },
+                {
+                    trial: 3,
+                    notReadWords: [],
+                    recalledWords: [
+                        { word: '왕', order: 1, isCorrect: true },
+                        { word: '싹', order: 2, isCorrect: true },
+                        { word: '팥', order: 3, isCorrect: true },
+                        { word: '가구', order: 4, isCorrect: true },
+                        { word: '지붕', order: 5, isCorrect: true },
+                        { word: '바다', order: 6, isCorrect: true },
+                        { word: '우유', order: 7, isCorrect: true },
+                        { word: '기계', order: 8, isCorrect: true },
+                        { word: '붓', order: 9, isCorrect: true }
+                    ],
+                    intrusionWords: []
+                }
+            ];
+            
+            showResults();
+            console.log('테스트 결과 표시 완료');
+        }
 
         // 페이지 떠날 때 정리
         window.addEventListener('beforeunload', () => {
