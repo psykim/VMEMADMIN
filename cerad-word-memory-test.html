@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERAD 단어목록기억검사 - 자동진행</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 36px;
+        }
+
+        .test-area {
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .word-card {
+            width: 500px;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 28px;
+            color: #34495e;
+            margin: 30px 0;
+            line-height: 1.6;
+            max-width: 700px;
+        }
+
+        .recall-instruction {
+            background-color: #e8f4f8;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #3498db;
+        }
+
+        .timer {
+            font-size: 72px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin: 30px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .start-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+
+        .recording-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff3cd;
+            border-radius: 10px;
+            border: 2px solid #ffc107;
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+        }
+
+        .recording-indicator.active {
+            opacity: 1;
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+
+        .recording-dot {
+            width: 20px;
+            height: 20px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            opacity: 0.3;
+            transition: all 0.5s ease;
+        }
+
+        .recording-indicator.active .recording-dot {
+            background-color: #28a745;
+            opacity: 1;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .recording-text {
+            font-size: 20px;
+            color: #856404;
+            opacity: 0.5;
+            transition: opacity 0.5s ease;
+        }
+
+        .recording-indicator.active .recording-text {
+            color: #155724;
+            opacity: 1;
+        }
+
+        .admin-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 14px;
+            display: none;
+        }
+
+        .admin-panel.show {
+            display: block;
+        }
+
+        .admin-button {
+            padding: 8px 16px;
+            margin: 5px;
+            font-size: 14px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .admin-button:hover {
+            background-color: #2980b9;
+        }
+
+        .phase-indicator {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ecf0f1;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 접근성을 위한 고대비 모드 */
+        @media (prefers-contrast: high) {
+            .word-card {
+                background: #000;
+                border: 3px solid #fff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CERAD 단어목록기억검사</h1>
+        
+        <div class="phase-indicator hidden" id="phaseIndicator"></div>
+        
+        <div class="test-area" id="testArea">
+            <div class="instruction">
+                검사를 시작하려면 아래 버튼을 눌러주세요.
+            </div>
+            <button class="start-button" onclick="startTest()">검사 시작</button>
+        </div>
+    </div>
+
+    <!-- 관리자 패널 (숨김 단축키: Ctrl+Shift+A) -->
+    <div class="admin-panel" id="adminPanel">
+        <h4>관리자 패널</h4>
+        <button class="admin-button" onclick="downloadResults()">결과 다운로드</button>
+        <button class="admin-button" onclick="resetTest()">검사 초기화</button>
+        <button class="admin-button" onclick="toggleAdminPanel()">패널 닫기</button>
+    </div>
+
+    <script>
+        // 검사 데이터
+        const wordLists = [
+            ['우유', '팥', '바다', '편지', '왕', '가구', '지붕', '붓', '싹', '기계'],
+            ['붓', '가구', '우유', '바다', '기계', '팥', '왕', '편지', '지붕', '싹'],
+            ['왕', '싹', '팥', '가구', '지붕', '바다', '우유', '기계', '붓', '편지']
+        ];
+
+        const allWords = ['우유', '팥', '바다', '편지', '왕', '가구', '지붕', '붓', '싹', '기계'];
+
+        // 전역 변수
+        let currentTrial = 0;
+        let currentWordIndex = 0;
+        let testResults = [];
+        let currentTrialResult = null;
+        let recognition = null;
+        let isRecognizing = false;
+        let recallTimer = null;
+        let wordShowTimer = null;
+        let lastResponseTime = null;
+        let encouragementTimer = null;
+        let encouragementGiven = false;
+
+        // 음성 합성 설정
+        const synth = window.speechSynthesis;
+        
+        function speak(text, callback) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            if (callback) {
+                utterance.onend = callback;
+            }
+            
+            synth.speak(utterance);
+        }
+
+        // 음성 인식 설정
+        function setupSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+            } else if ('SpeechRecognition' in window) {
+                recognition = new SpeechRecognition();
+            } else {
+                alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome 브라우저를 사용해주세요.');
+                return;
+            }
+
+            recognition.lang = 'ko-KR';
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        const transcript = event.results[i][0].transcript.trim();
+                        processRecognizedWord(transcript);
+                    }
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('음성 인식 오류:', event.error);
+                if (event.error === 'no-speech') {
+                    // 음성이 감지되지 않은 경우 재시작
+                    if (isRecognizing) {
+                        recognition.start();
+                    }
+                }
+            };
+
+            recognition.onend = function() {
+                if (isRecognizing) {
+                    recognition.start();
+                }
+            };
+        }
+
+        // 인식된 단어 처리
+        function processRecognizedWord(word) {
+            if (!currentTrialResult || !isRecognizing) return;
+            
+            // 단어 정제 (공백, 구두점 제거)
+            word = word.replace(/[.,!?]/g, '').trim();
+            
+            if (word && word.length > 0) {
+                const order = currentTrialResult.recalledWords.length + 1;
+                const wordData = {
+                    word: word,
+                    order: order,
+                    isCorrect: allWords.includes(word),
+                    timestamp: new Date().toISOString()
+                };
+                
+                // 중복 체크
+                const isDuplicate = currentTrialResult.recalledWords.some(w => w.word === word);
+                
+                if (!isDuplicate) {
+                    currentTrialResult.recalledWords.push(wordData);
+                    
+                    if (!wordData.isCorrect) {
+                        currentTrialResult.intrusionWords.push(word);
+                    }
+                    
+                    // 마지막 응답 시간 업데이트
+                    lastResponseTime = Date.now();
+                    encouragementGiven = false; // 새 응답이 있으면 격려 리셋
+                    
+                    console.log(`단어 인식: ${order}. ${word} (${wordData.isCorrect ? '정답' : '침투'})`);
+                }
+            }
+        }
+
+        // 검사 시작
+        function startTest() {
+            setupSpeechRecognition();
+            currentTrial = 0;
+            testResults = [];
+            
+            const testArea = document.getElementById('testArea');
+            testArea.innerHTML = '<div class="instruction">잠시만 기다려주세요...</div>';
+            
+            // 시작 안내
+            speak("제가 지금부터 10개의 단어를 보여드리겠습니다. 제가 그 단어를 하나씩 보여드리면 큰소리로 읽어보세요. 다 읽고 나신 다음, 보여드린 10개의 단어를 모두 외워서 대답해 보시도록 할 예정이니 잘 기억하시구요.", 
+                function() {
+                    // 추가 안내
+                    setTimeout(() => {
+                        speak("자, 준비되셨나요? 그럼 시작하겠습니다.", 
+                            function() {
+                                // 1초 대기 후 시작
+                                setTimeout(startTrial, 1000);
+                            }
+                        );
+                    }, 500);
+                }
+            );
+        }
+
+        // 시행 시작
+        function startTrial() {
+            currentWordIndex = 0;
+            currentTrialResult = {
+                trial: currentTrial + 1,
+                notReadWords: [],
+                recalledWords: [],
+                intrusionWords: []
+            };
+            
+            document.getElementById('phaseIndicator').classList.remove('hidden');
+            updatePhaseIndicator(`제 ${currentTrial + 1}시행`);
+            showWords();
+        }
+
+        // 단어 제시
+        function showWords() {
+            const testArea = document.getElementById('testArea');
+            
+            if (currentWordIndex < wordLists[currentTrial].length) {
+                const word = wordLists[currentTrial][currentWordIndex];
+                testArea.innerHTML = `<div class="word-card">${word}</div>`;
+                
+                currentWordIndex++;
+                wordShowTimer = setTimeout(showWords, 2000);
+            } else {
+                clearTimeout(wordShowTimer);
+                startRecall();
+            }
+        }
+
+        // 삐소리 재생 함수
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 1000; // 1000Hz 삐 소리
+            gainNode.gain.value = 0.3;
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2); // 0.2초 재생
+        }
+
+        // 회상 시작
+        function startRecall() {
+            let remainingTime = 90;
+            lastResponseTime = Date.now();
+            encouragementGiven = false;
+            
+            updatePhaseIndicator(`제 ${currentTrial + 1}시행 - 회상`);
+            
+            const testArea = document.getElementById('testArea');
+            testArea.innerHTML = `
+                <div class="recall-instruction instruction">
+                    잠시만 기다려주세요...
+                </div>
+            `;
+            
+            // 안내 멘트 재생
+            speak("잘 하셨습니다. 지금 막 보여드린 단어들이 무엇이었는지 삐소리 후 마이크에 불이 들어오면 말씀해 보세요. 마이크에 불이 꺼질 때까지 포기하지 마시고, 잘 기억나지 않아도 최대한 많이 기억해서 말씀해 주세요.", 
+                function() {
+                    // 안내 멘트 종료 후 1초 대기
+                    setTimeout(() => {
+                        // 삐소리 재생
+                        playBeep();
+                        
+                        // 삐소리 후 0.5초 뒤에 마이크 활성화
+                        setTimeout(() => {
+                            testArea.innerHTML = `
+                                <div class="recall-instruction instruction">
+                                    기억나는 단어를 모두 말씀해주세요
+                                </div>
+                                <div class="timer" id="recallTimer">90</div>
+                                <div class="recording-indicator active" id="recordingIndicator">
+                                    <div class="recording-dot"></div>
+                                    <div class="recording-text">마이크 녹음 중...</div>
+                                </div>
+                            `;
+                            
+                            // 음성 인식 시작
+                            isRecognizing = true;
+                            if (recognition) {
+                                recognition.start();
+                            }
+                            
+                            // 타이머 시작
+                            recallTimer = setInterval(() => {
+                                remainingTime--;
+                                document.getElementById('recallTimer').textContent = remainingTime;
+                                
+                                if (remainingTime <= 0) {
+                                    endRecall();
+                                }
+                            }, 1000);
+                            
+                            // 10초 무응답 체크 타이머
+                            encouragementTimer = setInterval(() => {
+                                const currentTime = Date.now();
+                                const timeSinceLastResponse = (currentTime - lastResponseTime) / 1000;
+                                
+                                if (timeSinceLastResponse >= 10 && !encouragementGiven && isRecognizing) {
+                                    encouragementGiven = true;
+                                    speak("포기하지 마시고 최대한 잘 기억해 보세요");
+                                }
+                            }, 1000);
+                        }, 500);
+                    }, 1000);
+                }
+            );
+        }
+
+        // 회상 종료
+        function endRecall() {
+            isRecognizing = false;
+            clearInterval(recallTimer);
+            clearInterval(encouragementTimer);
+            
+            if (recognition) {
+                recognition.stop();
+            }
+            
+            // 마이크 표시 비활성화
+            const recordingIndicator = document.getElementById('recordingIndicator');
+            if (recordingIndicator) {
+                recordingIndicator.classList.remove('active');
+            }
+            
+            testResults.push(currentTrialResult);
+            currentTrial++;
+            
+            const testArea = document.getElementById('testArea');
+            testArea.innerHTML = '<div class="instruction">잠시만 기다려주세요...</div>';
+            
+            if (currentTrial === 1) {
+                speak("수고하셨습니다. 다시 한번 보여드리겠습니다. 큰 소리로 읽어 보세요", 
+                    function() {
+                        setTimeout(startTrial, 1000);
+                    }
+                );
+            } else if (currentTrial === 2) {
+                speak("수고하셨습니다. 이제 마지막으로 한번 더 보여드리겠습니다. 큰 소리로 읽어 보세요", 
+                    function() {
+                        setTimeout(startTrial, 1000);
+                    }
+                );
+            } else {
+                endTest();
+            }
+        }
+
+        // 검사 종료
+        function endTest() {
+            document.getElementById('phaseIndicator').classList.add('hidden');
+            const testArea = document.getElementById('testArea');
+            
+            testArea.innerHTML = `
+                <div class="instruction">
+                    검사가 완료되었습니다.<br>
+                    수고하셨습니다.
+                </div>
+            `;
+            
+            speak("검사가 완료되었습니다. 수고하셨습니다.");
+            
+            // 결과 자동 저장
+            saveResults();
+        }
+
+        // 단계 표시 업데이트
+        function updatePhaseIndicator(text) {
+            document.getElementById('phaseIndicator').textContent = text;
+        }
+
+        // 결과 저장
+        function saveResults() {
+            const date = new Date();
+            const timestamp = date.toISOString();
+            
+            const resultData = {
+                testDate: timestamp,
+                results: testResults
+            };
+            
+            // localStorage에 저장
+            localStorage.setItem(`CERAD_${timestamp}`, JSON.stringify(resultData));
+            
+            console.log('검사 결과가 저장되었습니다:', resultData);
+        }
+
+        // 결과 다운로드 (관리자용)
+        function downloadResults() {
+            const date = new Date();
+            const timestamp = date.toLocaleString('ko-KR');
+            
+            let csvContent = "검사일시," + timestamp + "\n\n";
+            
+            testResults.forEach(result => {
+                csvContent += `제${result.trial}시행\n`;
+                csvContent += "회상 순서,단어,정답여부\n";
+                
+                result.recalledWords.forEach(w => {
+                    csvContent += `${w.order},${w.word},${w.isCorrect ? 'O' : 'X(침투)'}\n`;
+                });
+                
+                csvContent += "\n침투 단어," + result.intrusionWords.join(', ') + "\n";
+                csvContent += "정답 개수," + result.recalledWords.filter(w => w.isCorrect).length + "/10\n\n";
+            });
+            
+            // 전체 요약
+            csvContent += "\n전체 요약\n";
+            for (let i = 0; i < 3; i++) {
+                const correctCount = testResults[i].recalledWords.filter(w => w.isCorrect).length;
+                csvContent += `제${i+1}시행 정답수,${correctCount}\n`;
+            }
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `CERAD_단어목록기억검사_${date.toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        // 검사 초기화 (관리자용)
+        function resetTest() {
+            if (confirm('검사를 초기화하시겠습니까?')) {
+                location.reload();
+            }
+        }
+
+        // 관리자 패널 토글
+        function toggleAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            panel.classList.toggle('show');
+        }
+
+        // 키보드 단축키 (Ctrl+Shift+A)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                toggleAdminPanel();
+            }
+        });
+
+        // 페이지 떠날 때 정리
+        window.addEventListener('beforeunload', () => {
+            if (recallTimer) clearInterval(recallTimer);
+            if (wordShowTimer) clearTimeout(wordShowTimer);
+            if (encouragementTimer) clearInterval(encouragementTimer);
+            if (recognition && isRecognizing) {
+                recognition.stop();
+            }
+            if (synth.speaking) {
+                synth.cancel();
+            }
+        });
+    </script>
+</body>
+</html>
