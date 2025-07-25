@@ -72,6 +72,27 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             position: relative;
             transform-origin: top center;
+            margin-bottom: 60px;
+        }
+        
+        .word-card.empty {
+            color: #999999;
+            font-size: 36px;
+        }
+        
+        .word-card.recalled {
+            animation: wordAppear 0.5s ease;
+        }
+        
+        @keyframes wordAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
         
 
@@ -272,6 +293,58 @@
         #correctCount {
             font-weight: 700;
             font-size: 28px;
+        }
+        
+        /* 마이크 아이콘 스타일 */
+        .mic-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        
+        .mic-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .mic-icon.active {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: rgba(76, 175, 80, 0.8);
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+        }
+        
+        .mic-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+        
+        .mic-icon.active svg {
+            fill: #4CAF50;
+        }
+        
+        .mic-status {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            white-space: nowrap;
+        }
+        
+        .mic-icon.active .mic-status {
+            color: #4CAF50;
         }
 
         .admin-panel {
@@ -551,9 +624,19 @@
         <div class="phase-indicator hidden" id="phaseIndicator"></div>
         
         <div class="test-area" id="testArea">
+            <div class="simple-card">단어목록</div>
             <button class="start-button-circle" onclick="startTest()">
                 <span class="button-text">시작</span>
             </button>
+            <div class="mic-container">
+                <div class="mic-icon" id="micIcon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    <span class="mic-status">대기중</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -870,6 +953,21 @@
                         correctCountElement.textContent = correctCount;
                     }
                     
+                    // 인식된 단어를 카드에 표시
+                    const recallCard = document.getElementById('recallCard');
+                    if (recallCard) {
+                        recallCard.textContent = word;
+                        recallCard.classList.remove('empty');
+                        recallCard.classList.add('recalled');
+                        
+                        // 2초 후 다시 빈 카드로
+                        setTimeout(() => {
+                            recallCard.textContent = '빈 카드';
+                            recallCard.classList.add('empty');
+                            recallCard.classList.remove('recalled');
+                        }, 2000);
+                    }
+                    
                     // 정답 10개를 모두 말했는지 확인
                     if (correctCount >= 10) {
                         console.log('정답 10개 달성! 회상 종료');
@@ -908,6 +1006,15 @@
             testArea.innerHTML = `
                 <div class="simple-card fade-transition">
                     단어목록
+                </div>
+                <div class="mic-container">
+                    <div class="mic-icon" id="micIcon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                        <span class="mic-status">대기중</span>
+                    </div>
                 </div>
             `;
             
@@ -959,7 +1066,18 @@
                 const word = wordLists[currentTrial][currentWordIndex];
                 
                 // 애니메이션 없이 바로 표시
-                testArea.innerHTML = `<div class="word-card">${word}</div>`;
+                testArea.innerHTML = `
+                    <div class="word-card">${word}</div>
+                    <div class="mic-container">
+                        <div class="mic-icon active" id="micIcon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                            </svg>
+                            <span class="mic-status">읽어주세요</span>
+                        </div>
+                    </div>
+                `;
                 
                 currentWordIndex++;
                 wordShowTimer = setTimeout(showWords, 3000);
@@ -1018,9 +1136,17 @@
                                 <div class="recall-progress" id="recallProgress">
                                     <span class="progress-text">정답: <span id="correctCount">0</span>/10</span>
                                 </div>
-                                <div class="recording-indicator active" id="recordingIndicator">
-                                    <div class="recording-dot"></div>
-                                    <div class="recording-text">마이크 녹음 중...</div>
+                                <div class="word-card empty" id="recallCard">
+                                    빈 카드
+                                </div>
+                                <div class="mic-container">
+                                    <div class="mic-icon active" id="micIcon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                                        </svg>
+                                        <span class="mic-status">말씀하세요</span>
+                                    </div>
                                 </div>
                                 <!-- 수동 입력을 위한 버튼 (디버깅용) -->
                                 <div class="manual-input-section" style="margin-top: 20px;">
@@ -1072,9 +1198,13 @@
             }
             
             // 마이크 표시 비활성화
-            const recordingIndicator = document.getElementById('recordingIndicator');
-            if (recordingIndicator) {
-                recordingIndicator.classList.remove('active');
+            const micIcon = document.getElementById('micIcon');
+            if (micIcon) {
+                micIcon.classList.remove('active');
+                const micStatus = micIcon.querySelector('.mic-status');
+                if (micStatus) {
+                    micStatus.textContent = '대기중';
+                }
             }
             
             // 현재 시행 결과 저장
