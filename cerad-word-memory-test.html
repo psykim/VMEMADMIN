@@ -347,6 +347,29 @@
         .mic-icon.active .mic-status {
             color: #4CAF50;
         }
+        
+        /* 피드백 메시지 스타일 */
+        .feedback-message {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 18px;
+            white-space: nowrap;
+            animation: fadeInOut 2s ease;
+            pointer-events: none;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
 
         .admin-panel {
             position: fixed;
@@ -661,6 +684,8 @@
         let lastResponseTime = null;
         let encouragementTimer = null;
         let encouragementGiven = false;
+        let isShowingWords = false;
+        let currentWordShowing = null;
 
         // ElevenLabs 설정
         // 참고: 현재 API 키의 크레딧이 소진되어 기본 브라우저 TTS가 사용됩니다
@@ -871,7 +896,17 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     if (event.results[i].isFinal) {
                         const transcript = event.results[i][0].transcript.trim();
-                        processRecognizedWord(transcript);
+                        
+                        // 단어 제시 중인지 회상 중인지 확인
+                        if (isShowingWords && currentWordShowing) {
+                            // 단어 제시 중 - 따라 읽기 확인
+                            if (transcript.includes(currentWordShowing)) {
+                                showFeedback("잘 하셨습니다");
+                            }
+                        } else if (isRecognizing) {
+                            // 회상 중 - 단어 처리
+                            processRecognizedWord(transcript);
+                        }
                     }
                 }
             };
@@ -904,7 +939,60 @@
                 }
             };
         }
+        
+        // 피드백 표시 함수
+        function showFeedback(message) {
+            const micContainer = document.querySelector('.mic-container');
+            if (!micContainer) return;
+            
+            // 기존 피드백 제거
+            const existingFeedback = micContainer.querySelector('.feedback-message');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+            
+            // 새 피드백 추가
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback-message';
+            feedback.textContent = message;
+            micContainer.appendChild(feedback);
+            
+            // 애니메이션 후 제거
+            setTimeout(() => {
+                feedback.remove();
+            }, 2000);
+        }
 
+        // 단어 분리 함수
+        function separateWords(input) {
+            // 띄어쓰기가 없는 경우 원본 단어 목록과 비교하여 분리
+            let words = [];
+            let remaining = input.replace(/\s+/g, ''); // 모든 공백 제거
+            
+            while (remaining.length > 0) {
+                let matched = false;
+                
+                // 긴 단어부터 매칭 시도
+                for (let len = remaining.length; len > 0; len--) {
+                    const substr = remaining.substring(0, len);
+                    if (allWords.includes(substr)) {
+                        words.push(substr);
+                        remaining = remaining.substring(len);
+                        matched = true;
+                        break;
+                    }
+                }
+                
+                // 매칭되지 않은 경우 전체를 하나의 단어로 처리
+                if (!matched) {
+                    words.push(remaining);
+                    break;
+                }
+            }
+            
+            return words;
+        }
+        
         // 인식된 단어 처리
         function processRecognizedWord(word) {
             if (!currentTrialResult || !isRecognizing) return;
@@ -913,54 +1001,67 @@
             word = word.replace(/[.,!?]/g, '').trim();
             
             if (word && word.length > 0) {
-                const order = currentTrialResult.recalledWords.length + 1;
-                const wordData = {
-                    word: word,
-                    order: order,
-                    isCorrect: allWords.includes(word),
-                    timestamp: new Date().toISOString()
-                };
+                // 붙어있는 단어 분리
+                const separatedWords = separateWords(word);
                 
-                // 중복 체크
-                const isDuplicate = currentTrialResult.recalledWords.some(w => w.word === word);
+                separatedWords.forEach(separatedWord => {
+                    processIndividualWord(separatedWord);
+                });
+            }
+        }
+        
+        // 개별 단어 처리
+        function processIndividualWord(word) {
+            if (!word || word.length === 0) return;
+            
+            const order = currentTrialResult.recalledWords.length + 1;
+            const wordData = {
+                word: word,
+                order: order,
+                isCorrect: allWords.includes(word),
+                timestamp: new Date().toISOString()
+            };
+            
+            // 중복 체크
+            const isDuplicate = currentTrialResult.recalledWords.some(w => w.word === word);
+            
+            if (!isDuplicate) {
+                currentTrialResult.recalledWords.push(wordData);
                 
-                if (!isDuplicate) {
-                    currentTrialResult.recalledWords.push(wordData);
+                if (!wordData.isCorrect) {
+                    currentTrialResult.intrusionWords.push(word);
+                }
+                
+                // 마지막 응답 시간 업데이트
+                lastResponseTime = Date.now();
+                encouragementGiven = false; // 새 응답이 있으면 격려 리셋
+                
+                console.log(`단어 인식: ${order}. ${word} (${wordData.isCorrect ? '정답' : '침투'})`);
+                
+                // 정답 개수 업데이트
+                const correctCount = currentTrialResult.recalledWords.filter(w => w.isCorrect).length;
+                const correctCountElement = document.getElementById('correctCount');
+                if (correctCountElement) {
+                    correctCountElement.textContent = correctCount;
+                }
+                
+                // 인식된 단어를 카드에 표시
+                const recallCard = document.getElementById('recallCard');
+                if (recallCard) {
+                    recallCard.textContent = word;
+                    recallCard.classList.remove('empty');
+                    recallCard.classList.add('recalled');
                     
-                    if (!wordData.isCorrect) {
-                        currentTrialResult.intrusionWords.push(word);
-                    }
-                    
-                    // 마지막 응답 시간 업데이트
-                    lastResponseTime = Date.now();
-                    encouragementGiven = false; // 새 응답이 있으면 격려 리셋
-                    
-                    console.log(`단어 인식: ${order}. ${word} (${wordData.isCorrect ? '정답' : '침투'})`);
-                    
-                    // 정답 개수 업데이트
-                    const correctCount = currentTrialResult.recalledWords.filter(w => w.isCorrect).length;
-                    const correctCountElement = document.getElementById('correctCount');
-                    if (correctCountElement) {
-                        correctCountElement.textContent = correctCount;
-                    }
-                    
-                    // 인식된 단어를 카드에 표시
-                    const recallCard = document.getElementById('recallCard');
-                    if (recallCard) {
-                        recallCard.textContent = word;
-                        recallCard.classList.remove('empty');
-                        recallCard.classList.add('recalled');
-                        
-                        // 2초 후 다시 빈 카드로
-                        setTimeout(() => {
-                            recallCard.textContent = '빈 카드';
-                            recallCard.classList.add('empty');
-                            recallCard.classList.remove('recalled');
-                        }, 2000);
-                    }
-                    
-                    // 정답 10개를 모두 말했는지 확인
-                    if (correctCount >= 10) {
+                    // 2초 후 다시 빈 카드로
+                    setTimeout(() => {
+                        recallCard.textContent = '빈 카드';
+                        recallCard.classList.add('empty');
+                        recallCard.classList.remove('recalled');
+                    }, 2000);
+                }
+                
+                // 정답 10개를 모두 말했는지 확인
+                if (correctCount >= 10) {
                         console.log('정답 10개 달성! 회상 종료');
                         
                         // 타이머 표시 업데이트
@@ -970,15 +1071,13 @@
                             timerElement.style.color = '#4CAF50';
                         }
                         
-                        // 완료 음성 안내
-                        speak("잘하셨습니다. 모든 단어를 기억하셨네요.");
-                        
-                        // 2초 후 자동 종료 (음성 안내 후 여유 시간)
+                        // 완료 음성 안내 없이 바로 종료
+                        // 약간의 딜레이만 주고 바로 다음으로
                         setTimeout(() => {
                             if (isRecognizing) {
                                 endRecall();
                             }
-                        }, 2000);
+                        }, 500);
                     }
                 }
             }
@@ -1055,6 +1154,8 @@
             
             if (currentWordIndex < wordLists[currentTrial].length) {
                 const word = wordLists[currentTrial][currentWordIndex];
+                currentWordShowing = word;
+                isShowingWords = true;
                 
                 // 애니메이션 없이 바로 표시
                 testArea.innerHTML = `
@@ -1070,10 +1171,21 @@
                     </div>
                 `;
                 
+                // 음성인식이 시작되지 않았으면 시작
+                if (recognition && !isRecognizing) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log('음성인식 시작 실패:', e);
+                    }
+                }
+                
                 currentWordIndex++;
                 wordShowTimer = setTimeout(showWords, 3000);
             } else {
                 clearTimeout(wordShowTimer);
+                isShowingWords = false;
+                currentWordShowing = null;
                 startRecall();
             }
         }
