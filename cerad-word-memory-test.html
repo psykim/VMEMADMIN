@@ -1062,23 +1062,22 @@
                 
                 // 정답 10개를 모두 말했는지 확인
                 if (correctCount >= 10) {
-                        console.log('정답 10개 달성! 회상 종료');
-                        
-                        // 타이머 표시 업데이트
-                        const timerElement = document.getElementById('recallTimer');
-                        if (timerElement) {
-                            timerElement.textContent = '완료!';
-                            timerElement.style.color = '#4CAF50';
-                        }
-                        
-                        // 완료 음성 안내 없이 바로 종료
-                        // 약간의 딜레이만 주고 바로 다음으로
-                        setTimeout(() => {
-                            if (isRecognizing) {
-                                endRecall();
-                            }
-                        }, 500);
+                    console.log('정답 10개 달성! 회상 종료');
+                    
+                    // 타이머 표시 업데이트
+                    const timerElement = document.getElementById('recallTimer');
+                    if (timerElement) {
+                        timerElement.textContent = '완료!';
+                        timerElement.style.color = '#4CAF50';
                     }
+                    
+                    // 완료 음성 안내 없이 바로 종료
+                    // 약간의 딜레이만 주고 바로 다음으로
+                    setTimeout(() => {
+                        if (isRecognizing) {
+                            endRecall();
+                        }
+                    }, 500);
                 }
             }
         }
